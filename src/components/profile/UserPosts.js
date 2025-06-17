@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Fish, Calendar, MapPin, Scale, Ruler, MessageCircle, Edit, Trash2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import api from '../../services/api';
@@ -11,9 +11,22 @@ const UserPosts = ({ userName, onEditPost, onDeletePost }) => {
 
     const isOwner = user?.userName === userName;
 
+    const loadUserPosts = useCallback(async () => {
+        try {
+            setLoading(true);
+            const userPosts = await api.getUserPosts(userName);
+            setPosts(userPosts);
+            setError('');
+        } catch (err) {
+            setError('Erreur lors du chargement des publications');
+        } finally {
+            setLoading(false);
+        }
+    }, [userName]);
+
     useEffect(() => {
         loadUserPosts();
-    }, [userName]);
+    }, [loadUserPosts]);
 
     const loadUserPosts = async () => {
         try {

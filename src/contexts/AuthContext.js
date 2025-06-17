@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import api from '../services/api';
 
-// Context pour l'authentification
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -12,59 +11,84 @@ export const useAuth = () => {
     return context;
 };
 
-// Provider d'authentification
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        checkAuth();
+        checkAuthStatus();
     }, []);
 
-    const checkAuth = async () => {
+    const checkAuthStatus = async () => {
         try {
-            const userData = await api.getCurrentUser();
-            setUser(userData);
+            const token = localStorage.getItem('token');
+            if (token) {
+                api.setToken(token);
+                const userData = await api.getCurrentUser();
+                setUser(userData);
+            }
         } catch (error) {
-            setUser(null);
+            localStorage.removeItem('token');
+            api.setToken(null);
         } finally {
             setLoading(false);
         }
     };
 
     const login = async (credentials) => {
-        const userData = await api.login(credentials);
-        setUser(userData);
-        return userData;
+        try {
+            const response = await api.login(credentials);
+            if (response.user) {
+                setUser(response.user);
+            } else {
+                setUser(response); // Au cas où la structure de réponse serait différente
+            }
+            return response;
+        } catch (error) {
+            throw error;
+        }
     };
 
     const register = async (userData) => {
-        const newUser = await api.register(userData);
-        // Après inscription, se connecter automatiquement
-        await login({ email: userData.email, password: userData.password });
-        return newUser;
+        try {
+            const response = await api.register(userData);
+            // Auto-login après inscription réussie
+            if (response.token || response.user) {
+                // Si le register retourne un token, on set l'utilisateur
+                if (response.user) {
+                    setUser(response.user);
+                } else {
+                    // Sinon on fait un login automatique
+                    const loginResponse = await api.login({
+                        userName: userData.userName,
+                        password: userData.password
+                    });
+                    setUser(loginResponse.user || loginResponse);
+                }
+            }
+            return response;
+        } catch (error) {
+            throw error;
+        }
     };
 
-    const logout = async () => {
-        await api.logout();
+    const logout = () => {
+        localStorage.removeItem('token');
+        api.setToken(null);
         setUser(null);
     };
 
-    const updateProfile = async (userData) => {
-        const updatedUser = await api.updateUser(userData);
-        setUser(updatedUser);
-        return updatedUser;
+    const value = {
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        checkAuthStatus
     };
 
     return (
-        <AuthContext.Provider value={{
-            user,
-            login,
-            register,
-            logout,
-            updateProfile,
-            loading
-        }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

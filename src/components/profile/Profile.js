@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { User, Mail, MapPin, Calendar, Edit, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Header from '../layout/Header';
@@ -6,7 +7,9 @@ import UserPosts from './UserPosts';
 import PostForm from '../posts/PostForm';
 import api from '../../services/api';
 
-const Profile = ({ userName: propUserName, onBack }) => {
+const Profile = () => {
+    const { userName } = useParams(); // Récupère le userName depuis l'URL
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -14,17 +17,9 @@ const Profile = ({ userName: propUserName, onBack }) => {
     const [editingPost, setEditingPost] = useState(null);
     const [activeTab, setActiveTab] = useState('posts');
 
-    // Utilise le userName passé en prop ou celui de l'utilisateur connecté
-    const userName = propUserName || user?.userName;
     const isOwner = user?.userName === userName;
 
-    useEffect(() => {
-        if (userName) {
-            loadProfile();
-        }
-    }, [userName]);
-
-    const loadProfile = async () => {
+    const loadProfile = useCallback(async () => {
         try {
             setLoading(true);
             const profileData = await api.getUserProfile(userName);
@@ -35,7 +30,13 @@ const Profile = ({ userName: propUserName, onBack }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [userName]);
+
+    useEffect(() => {
+        if (userName) {
+            loadProfile();
+        }
+    }, [loadProfile]);
 
     const handleEditPost = async (postData) => {
         try {
@@ -45,15 +46,6 @@ const Profile = ({ userName: propUserName, onBack }) => {
             window.location.reload();
         } catch (err) {
             alert('Erreur lors de la modification du post');
-        }
-    };
-
-    const handleBack = () => {
-        if (onBack) {
-            onBack();
-        } else {
-            // Fallback : recharger la page ou rediriger vers l'accueil
-            window.location.href = '/';
         }
     };
 
@@ -102,10 +94,10 @@ const Profile = ({ userName: propUserName, onBack }) => {
                         <h2 className="text-2xl font-bold text-red-800 mb-4">Profil non trouvé</h2>
                         <p className="text-red-600 mb-4">{error}</p>
                         <button
-                            onClick={handleBack}
+                            onClick={() => navigate('/')}
                             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
                         >
-                            Retour
+                            Retour à l'accueil
                         </button>
                     </div>
                 </div>
@@ -118,15 +110,13 @@ const Profile = ({ userName: propUserName, onBack }) => {
             <Header />
             <div className="max-w-4xl mx-auto px-4 py-8">
                 {/* Bouton retour */}
-                {onBack && (
-                    <button
-                        onClick={handleBack}
-                        className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 mb-6"
-                    >
-                        <ArrowLeft className="h-4 w-4" />
-                        <span>Retour</span>
-                    </button>
-                )}
+                <button
+                    onClick={() => navigate(-1)}
+                    className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 mb-6"
+                >
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Retour</span>
+                </button>
 
                 {/* Formulaire d'édition de post */}
                 {editingPost && (
