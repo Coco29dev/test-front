@@ -28,19 +28,6 @@ const UserPosts = ({ userName, onEditPost, onDeletePost }) => {
         loadUserPosts();
     }, [loadUserPosts]);
 
-    const loadUserPosts = async () => {
-        try {
-            setLoading(true);
-            const userPosts = await api.getUserPosts(userName);
-            setPosts(userPosts);
-            setError('');
-        } catch (err) {
-            setError('Erreur lors du chargement des publications');
-        } finally {
-            setLoading(false);
-        }
-    };
-
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('fr-FR', {
             year: 'numeric',
@@ -180,8 +167,8 @@ const UserPosts = ({ userName, onEditPost, onDeletePost }) => {
                             <div className="flex items-center space-x-2 mt-4 text-gray-600">
                                 <MessageCircle className="h-4 w-4" />
                                 <span className="text-sm">
-                  {post.comments.length} commentaire{post.comments.length > 1 ? 's' : ''}
-                </span>
+                                    {post.comments.length} commentaire{post.comments.length > 1 ? 's' : ''}
+                                </span>
                             </div>
                         )}
                     </div>
